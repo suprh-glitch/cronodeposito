@@ -270,7 +270,7 @@ button{cursor:pointer}
         <p class="hint">Tempo (min) gasto em cada etapa desde a entrada anterior.</p>
         <div class="table-wrap">
           <table class="data-table">
-            <thead><tr><th>Nº</th><th>Prioridade</th><th>Pedido→Separação</th><th>Separação→Sep.Final.</th><th>Sep.Final.→Faturamento</th><th>Faturamento→Transporte</th><th>Transporte→Recebido</th><th>Ciclo Total</th><th>SLA</th></tr></thead>
+            <thead><tr><th>Nº</th><th>Prioridade</th><th>Pedido→Separação</th><th>Separação→Sep.Final.</th><th>Sep.Final.→Faturamento</th><th>Faturamento→Dep.Pulmão</th><th>Dep.Pulmão→Recebido</th><th>Ciclo Total</th><th>SLA</th></tr></thead>
             <tbody id="cronoTableBody"></tbody>
           </table>
         </div>
@@ -370,7 +370,7 @@ const STAGES = [
   {key:'separacao',    label:'Em Separação',           field:'tEmSeparacao',          color:'#2962b8'},
   {key:'sepfinal',     label:'Separação Finalizada',   field:'tSeparacaoFinalizada',  color:'#dc7b14'},
   {key:'faturamento',  label:'Faturamento',            field:'tFaturamento',          color:'#c93c3c'},
-  {key:'transporte',   label:'Transporte Loja',        field:'tAguardandoTransporte', color:'#E6A100'},
+  {key:'pulmao',       label:'Entregue Depósito Pulmão',field:'tAguardandoTransporte', color:'#E6A100'},
   {key:'recebido',     label:'Recebido Loja',          field:'tRecebidoLoja',         color:'#17834f'}
 ];
 const LS_KEY = 'nx_transferencias_v1';
