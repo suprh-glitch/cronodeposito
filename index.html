@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Controle de Transferência | Nova Xavantina — Rede Nilo</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#F7F7F5;
+  --surface:#ffffff;
+  --surface-2:#f8fafc;
+  --text:#333333;
+  --muted:#6b7280;
+  --line:#e4e7ec;
+  --primary:#FFC400;
+  --primary-dark:#E6A100;
+  --navy:#1B2A4A;
+  --green:#17834f;
+  --red:#c93c3c;
+  --orange:#dc7b14;
+  --blue:#2962b8;
+  --shadow:0 10px 30px rgba(27,42,74,.08);
+  --radius:16px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text)}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+.app{min-height:100vh}
+.header{background:linear-gradient(135deg,var(--navy),#243a63);color:#fff;padding:20px 28px;display:flex;align-items:center;justify-content:space-between;gap:20px;position:sticky;top:0;z-index:30;box-shadow:0 6px 18px rgba(17,27,45,.18)}
+.brand{display:flex;align-items:center;gap:14px}.brand-mark{width:48px;height:48px;border-radius:14px;background:var(--primary);color:var(--navy);display:grid;place-items:center;font-weight:900;font-size:20px}
+.brand h1{font-size:19px;margin:0 0 4px}.brand p{font-size:12px;margin:0;color:#cfd7e5}
+.header-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.clock{font-variant-numeric:tabular-nums;font-weight:700;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);padding:10px 12px;border-radius:10px}
+.sync{font-size:11px;color:#cfd7e5}
+.btn{border:0;border-radius:10px;padding:10px 14px;font-weight:700;display:inline-flex;align-items:center;gap:8px}
+.btn-primary{background:var(--primary);color:var(--navy)}.btn-primary:hover{background:#ffd633}
+.btn-outline{background:#fff;border:1px solid var(--line);color:var(--text)}
+.btn-danger{background:#fff0f0;color:var(--red);border:1px solid #f4caca}
+.btn-sm{padding:7px 10px;font-size:12px}
+.main{padding:22px 26px 36px;max-width:1900px;margin:0 auto}
+.toolbar{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px;display:flex;align-items:end;gap:12px;flex-wrap:wrap;box-shadow:var(--shadow);margin-bottom:18px}
+.field{display:flex;flex-direction:column;gap:6px;min-width:150px}.field label{font-size:12px;color:var(--muted);font-weight:700}
+.field input,.field select,.field textarea{border:1px solid #d6dae2;border-radius:9px;padding:10px 11px;background:#fff;color:var(--text)}
+.toolbar-spacer{flex:1}
+.tabs{display:flex;gap:8px;overflow-x:auto;margin-bottom:18px}.tab{border:1px solid var(--line);background:#fff;color:var(--muted);padding:10px 16px;border-radius:999px;font-weight:800;white-space:nowrap}.tab.active{background:var(--navy);border-color:var(--navy);color:#fff}
+.view{display:none}.view.active{display:block}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:18px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:17px;box-shadow:var(--shadow)}
+.kpi .label{font-size:12px;color:var(--muted);font-weight:700}.kpi .value{font-size:26px;font-weight:900;margin-top:8px}.kpi .sub{font-size:11px;color:var(--muted);margin-top:6px}
+.kpi.good .value{color:var(--green)}.kpi.bad .value{color:var(--red)}.kpi.warn .value{color:var(--orange)}
+.grid-2{display:grid;grid-template-columns:1.25fr .75fr;gap:16px;margin-bottom:18px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
+.panel h2{font-size:16px;margin:0 0 4px}.panel .hint{color:var(--muted);font-size:12px;margin:0 0 16px}
+.stage-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+.stage-metric{border:1px solid var(--line);border-radius:12px;background:var(--surface-2);padding:14px}
+.stage-metric .name{font-size:11px;color:var(--muted);min-height:30px}.stage-metric .time{font-size:17px;font-weight:900;margin-top:8px}
+.stage-metric.bottleneck{border-color:var(--red);background:#fff5f5}
+.stage-metric.bottleneck .time{color:var(--red)}
+.chart-wrap{position:relative;height:260px}
+.status-list{display:flex;flex-direction:column;gap:12px}.status-row{display:grid;grid-template-columns:170px 1fr 42px;align-items:center;gap:10px;font-size:12px}
+.status-track{height:10px;background:#eef1f5;border-radius:999px;overflow:hidden}.status-fill{height:100%;border-radius:999px}.status-count{text-align:right;font-weight:800}
+.kanban-wrap{overflow:visible;padding-bottom:8px}.kanban{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;width:100%}
+.kanban-col{background:#edf1f5;border:1px solid #dfe4eb;border-radius:12px;min-height:320px;padding:8px}
+.kanban-col.drag-over{outline:3px solid rgba(255,196,0,.55);background:#fff8dc}
+.col-head{display:flex;align-items:center;justify-content:space-between;gap:5px;padding:2px 2px 8px}
+.col-title{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:800;color:var(--text);line-height:1.2}
+.dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+.badge{width:26px;height:26px;border-radius:50%;background:#fff;border:1px solid var(--line);display:grid;place-items:center;font-weight:900;font-size:11px;flex:0 0 auto}
+.cards{display:flex;flex-direction:column;gap:8px}
+.order-card{background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:10px;box-shadow:0 4px 10px rgba(17,27,45,.05);cursor:grab}
+.order-card.dragging{opacity:.55}
+.order-card.urgente{border-left:3px solid var(--red)}
+.order-card.atrasado{border-left:3px solid var(--red);background:#fff6f6}
+.order-urgent{color:var(--red);font-weight:900;font-size:9px;letter-spacing:.02em;margin:1px 0 5px;display:flex;align-items:center;gap:5px}
+.order-atraso-tag{color:var(--red);font-weight:900;font-size:9px;letter-spacing:.02em;margin:1px 0 5px;display:flex;align-items:center;gap:5px}
+.blink-dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto;animation:blinkDot 1s ease-in-out infinite}
+.blink-dot.blink-red{background:var(--red)}
+@keyframes blinkDot{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(201,60,60,.5)}50%{opacity:.25;box-shadow:0 0 0 4px rgba(201,60,60,0)}}
+.order-top{display:flex;justify-content:space-between;align-items:center;gap:5px}
+.order-id{font-size:10px;color:var(--muted);font-weight:800}
+.card-delete{width:20px;height:20px;border-radius:50%;border:1px solid var(--line);background:#fff;color:var(--red);font-size:13px;line-height:1;padding:0;display:grid;place-items:center;flex:0 0 auto}
+.card-delete:hover{background:#fff0f0;border-color:#f4caca}
+.order-client{font-size:13px;font-weight:900;margin:6px 0 5px;color:var(--text);line-height:1.25}
+.order-line{display:flex;align-items:center;gap:4px;font-size:9.5px;color:var(--muted);margin-bottom:4px;flex-wrap:wrap}
+.timer-box{background:var(--surface-2);border-radius:9px;padding:9px 10px;margin:8px 0;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.timer-box.atrasado{background:#fde8e8}
+.timer-label{font-size:8px;text-transform:uppercase;color:var(--muted);font-weight:800;letter-spacing:.02em;white-space:nowrap}
+.timer-value{font-weight:800;font-size:12.5px;margin-top:3px;color:var(--text);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.timer-value.etapa{color:var(--red)}
+.timer-value.atrasado{color:var(--red)}
+.order-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;margin-top:8px}
+.order-actions .btn{min-width:0;padding:7px 3px;font-size:9.5px;border-radius:8px;font-weight:800;background:#fff;border:1px solid var(--line);color:var(--text);line-height:1.15}
+.order-actions .btn.btn-advance{background:var(--primary);color:var(--navy);border:0}
+.order-actions .btn.btn-advance:hover{background:var(--primary-dark)}
+.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:12px}
+.data-table{width:100%;border-collapse:collapse;min-width:1000px;background:#fff}
+.data-table th{position:sticky;top:0;background:var(--navy);color:#fff;text-align:left;font-size:11px;padding:11px 10px;white-space:nowrap}
+.data-table td{padding:10px;border-bottom:1px solid var(--line);font-size:11px;white-space:nowrap}
+.data-table tr:hover td{background:#fffbea}
+.sla-ok{color:var(--green);background:#e9f7ef;border-radius:999px;padding:4px 8px;font-weight:800;font-size:10px}
+.sla-bad{color:var(--red);background:#fff0f0;border-radius:999px;padding:4px 8px;font-weight:800;font-size:10px}
+.modal-backdrop{position:fixed;inset:0;background:rgba(10,17,28,.58);display:none;align-items:center;justify-content:center;padding:18px;z-index:100}
+.modal-backdrop.open{display:flex}
+.modal{background:#fff;border-radius:18px;width:min(640px,100%);max-height:92vh;overflow:auto;box-shadow:0 30px 80px rgba(0,0,0,.28)}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--line)}
+.modal-head h3{margin:0;font-size:18px}.modal-body{padding:20px}
+.modal-foot{padding:15px 20px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px}
+.close{background:#f2f4f7;border:0;width:34px;height:34px;border-radius:9px;font-size:20px}
+.form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:13px}.span-2{grid-column:span 2}
+.detalhes-field{margin-bottom:16px}
+.detalhes-field label{display:block;font-size:12px;font-weight:800;color:var(--muted);margin-bottom:8px}
+.detalhes-field input[type="datetime-local"]{width:100%;border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:15px;background:#fff;color:var(--text)}
+.empty{padding:28px;text-align:center;color:var(--muted);font-size:12px}
+.toast{position:fixed;right:22px;bottom:22px;background:var(--navy);color:#fff;padding:12px 16px;border-radius:10px;box-shadow:var(--shadow);z-index:200;opacity:0;transform:translateY(8px);pointer-events:none;transition:.2s}
+.toast.show{opacity:1;transform:translateY(0)}
+.footer-note{font-size:11px;color:var(--muted);text-align:center;padding-top:16px}
+.auth-screen{position:fixed;inset:0;background:linear-gradient(135deg,var(--navy),#243a63);display:flex;align-items:center;justify-content:center;padding:20px;z-index:500}
+.auth-card{background:#fff;border-radius:18px;width:min(440px,100%);max-height:94vh;overflow:auto;box-shadow:0 30px 80px rgba(0,0,0,.3);padding:28px}
+.auth-brand{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.auth-brand .brand-mark{width:42px;height:42px;border-radius:12px;background:var(--primary);color:var(--navy);display:grid;place-items:center;font-weight:900;font-size:19px;flex:0 0 auto}
+.auth-brand h2{margin:0;font-size:17px;color:var(--navy)}
+.auth-brand p{margin:2px 0 0;font-size:11px;color:var(--muted)}
+.auth-field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.auth-field label{font-size:12px;color:var(--muted);font-weight:700}
+.auth-field input,.auth-field select{border:1px solid #d6dae2;border-radius:9px;padding:11px 12px;background:#fff;font-size:14px}
+.auth-error{background:#fff0f0;border:1px solid #f4caca;color:var(--red);border-radius:9px;padding:10px 12px;font-size:12px;margin-bottom:14px;display:none}
+.auth-error.show{display:block}
+.auth-success{background:#e9f7ef;border:1px solid #bfe4ce;color:var(--green);border-radius:9px;padding:10px 12px;font-size:12px;margin-bottom:14px;display:none}
+.auth-success.show{display:block}
+.auth-pending{background:#fff8db;border:1px solid #f5dd8a;color:#6d5710;border-radius:9px;padding:10px 12px;font-size:12px;margin-bottom:14px;display:none}
+.auth-pending.show{display:block}
+.auth-links{display:flex;justify-content:space-between;margin-top:14px;font-size:12px}
+.auth-links a{color:var(--navy);font-weight:700;text-decoration:none;cursor:pointer}
+.auth-links a:hover{text-decoration:underline}
+.auth-submit{width:100%;padding:12px;border:0;border-radius:10px;background:var(--primary);color:var(--navy);font-weight:800;font-size:14px;cursor:pointer;margin-top:6px}
+.store-select-btn{width:100%;padding:16px 18px;border:1.5px solid var(--line);border-radius:12px;background:#fff;color:var(--navy);font-weight:800;font-size:15px;cursor:pointer;text-align:left;transition:.15s;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.store-select-btn:hover{border-color:var(--primary);background:#fffbea;box-shadow:0 2px 10px rgba(255,196,0,.25)}
+.store-select-cta{font-size:12px;font-weight:900;color:var(--navy);background:var(--primary);padding:6px 12px;border-radius:999px;white-space:nowrap}
+.user-badge{font-size:11px;color:#cfd7e5;font-weight:700}
+.admin-user-row{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.admin-user-info b{display:block;font-size:13px}
+.admin-user-info span{font-size:11px;color:var(--muted)}
+.pill{font-size:10px;font-weight:800;padding:3px 8px;border-radius:999px}
+.pill.pendente{background:#fff8db;color:#6d5710}
+.pill.ativo{background:#e9f7ef;color:var(--green)}
+.pill.master{background:#eef1f5;color:var(--navy)}
+.loja-checks{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.loja-check{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12px}
+@media (max-width:1100px){.kanban{grid-template-columns:repeat(3,minmax(240px,1fr));overflow-x:auto}.stage-grid{grid-template-columns:repeat(3,1fr)}.grid-2{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.span-2{grid-column:span 1}}
+</style>
+</head>
+<body>
+<div class="auth-screen" id="authScreen">
+  <!-- LOGIN -->
+  <div class="auth-card" id="authCardLogin">
+    <div class="auth-brand">
+      <div class="brand-mark">N</div>
+      <div><h2>Controle de Transferência</h2><p>Nova Xavantina — Rede Nilo — acesso restrito</p></div>
+    </div>
+    <div class="auth-error" id="loginError"></div>
+    <div class="auth-pending" id="loginPending">Seu cadastro está pendente de liberação por um administrador (Master).</div>
+    <div class="auth-field"><label>Usuário</label><input id="loginUsuario" autocomplete="username"></div>
+    <div class="auth-field"><label>Senha</label><input id="loginSenha" type="password" autocomplete="current-password"></div>
+    <button class="auth-submit" onclick="doLogin()">Entrar</button>
+    <div class="auth-links">
+      <a onclick="showAuthCard('authCardRegister')">Cadastrar novo usuário</a>
+      <span></span>
+    </div>
+  </div>
+
+  <!-- CADASTRO -->
+  <div class="auth-card" id="authCardRegister" style="display:none">
+    <div class="auth-brand"><div class="brand-mark">N</div><div><h2>Cadastrar usuário</h2><p>Seu acesso precisa ser autorizado por um Master</p></div></div>
+    <div class="auth-error" id="registerError"></div>
+    <div class="auth-success" id="registerSuccess"></div>
+    <div class="auth-field"><label>Nome completo</label><input id="regNome"></div>
+    <div class="auth-field"><label>Telefone</label><input id="regTelefone" placeholder="(66) 99999-9999"></div>
+    <div class="auth-field"><label>E-mail</label><input id="regEmail" type="email"></div>
+    <div class="auth-field"><label>Usuário</label><input id="regUsuario" autocomplete="username"></div>
+    <div class="auth-field"><label>Senha</label><input id="regSenha" type="password" autocomplete="new-password"></div>
+    <div class="auth-field"><label>Confirmar senha</label><input id="regSenhaConfirm" type="password" autocomplete="new-password"></div>
+    <button class="auth-submit" onclick="doRegister()">Cadastrar</button>
+    <div class="auth-links"><a onclick="showAuthCard('authCardLogin')">← Voltar para o login</a><span></span></div>
+  </div>
+
+  <!-- SELEÇÃO DE LOJA -->
+  <div class="auth-card" id="authCardStoreSelect" style="display:none">
+    <div class="auth-brand"><div class="brand-mark">N</div><div><h2>Selecione a loja</h2><p>Escolha qual loja deseja acompanhar</p></div></div>
+    <div id="storeSelectList"></div>
+    <div class="auth-links"><a onclick="doLogout()">← Sair</a><span></span></div>
+  </div>
+</div>
+
+<div class="app" id="mainApp" style="display:none">
+  <header class="header">
+    <div class="brand">
+      <div class="brand-mark">N</div>
+      <div><h1>Controle de Transferência — Nova Xavantina</h1><p>Depósito externo → Loja | Kanban, Cronoanálise e Dashboard</p></div>
+    </div>
+    <div class="header-actions">
+      <div class="sync" id="syncStatus">Conectando à planilha...</div>
+      <div class="clock" id="liveClock">--:--:--</div>
+      <div class="user-badge" id="userBadge"></div>
+      <button class="btn btn-outline btn-sm" id="adminBtn" style="display:none" onclick="openAdmin()">⚙ Administração</button>
+      <button class="btn btn-outline btn-sm" onclick="doLogout()">Sair</button>
+      <button class="btn btn-primary btn-sm" onclick="openNewModal()">+ Nova Transferência</button>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="tabs">
+      <button class="tab active" data-view="viewKanban" onclick="switchView('viewKanban')">Kanban</button>
+      <button class="tab" data-view="viewCrono" onclick="switchView('viewCrono')">Cronoanálise</button>
+      <button class="tab" data-view="viewDash" onclick="switchView('viewDash')">Dashboard</button>
+    </div>
+
+    <!-- ================= KANBAN ================= -->
+    <div class="view active" id="viewKanban">
+      <div class="toolbar">
+        <div class="field"><label>Buscar</label><input id="kbSearch" placeholder="Nº transferência ou item" oninput="renderKanban()"></div>
+        <div class="field"><label>Prioridade</label>
+          <select id="kbFiltroPrioridade" onchange="renderKanban()">
+            <option value="">Todas</option><option value="Urgente">Urgente</option><option value="Normal">Normal</option>
+          </select>
+        </div>
+        <div class="toolbar-spacer"></div>
+        <div class="sync" id="kbCount">0 transferências em andamento</div>
+      </div>
+      <div class="kanban-wrap"><div class="kanban" id="kanbanBoard"></div></div>
+    </div>
+
+    <!-- ================= CRONOANÁLISE ================= -->
+    <div class="view" id="viewCrono">
+      <div class="toolbar">
+        <div class="field"><label>Período</label>
+          <select id="crPeriodo" onchange="renderCrono()">
+            <option value="7">Últimos 7 dias</option>
+            <option value="30" selected>Últimos 30 dias</option>
+            <option value="90">Últimos 90 dias</option>
+            <option value="0">Tudo</option>
+          </select>
+        </div>
+        <div class="field"><label>Meta de ciclo total (min)</label><input id="crSlaMinutos" type="number" value="240" onchange="renderCrono()"></div>
+        <div class="toolbar-spacer"></div>
+      </div>
+
+      <div class="panel" style="margin-bottom:16px">
+        <h2>Tempo médio por etapa</h2>
+        <p class="hint">Etapa com maior tempo médio é sinalizada como gargalo do processo.</p>
+        <div class="stage-grid" id="stageMetrics"></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="panel">
+          <h2>Tempo médio por etapa (gráfico)</h2>
+          <p class="hint">Minutos, considerando transferências concluídas no período.</p>
+          <div class="chart-wrap"><canvas id="chartEtapas"></canvas></div>
+        </div>
+        <div class="panel">
+          <h2>Aderência ao SLA</h2>
+          <p class="hint">Transferências concluídas no prazo x fora do prazo.</p>
+          <div class="chart-wrap"><canvas id="chartSla"></canvas></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Detalhamento por transferência</h2>
+        <p class="hint">Tempo (min) gasto em cada etapa desde a entrada anterior.</p>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Nº</th><th>Prioridade</th><th>Pedido→Separação</th><th>Separação→Sep.Final.</th><th>Sep.Final.→Faturamento</th><th>Faturamento→Transporte</th><th>Transporte→Dep.Pulmão</th><th>Dep.Pulmão→Recebido</th><th>Ciclo Total</th><th>SLA</th></tr></thead>
+            <tbody id="cronoTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= DASHBOARD ================= -->
+    <div class="view" id="viewDash">
+      <div class="kpis" id="dashKpis"></div>
+      <div class="grid-2">
+        <div class="panel">
+          <h2>Transferências recebidas por dia</h2>
+          <p class="hint">Volume de transferências iniciadas, últimos 14 dias.</p>
+          <div class="chart-wrap"><canvas id="chartVolumeDiario"></canvas></div>
+        </div>
+        <div class="panel">
+          <h2>Distribuição por etapa atual</h2>
+          <p class="hint">Onde estão as transferências em aberto agora.</p>
+          <div class="status-list" id="dashStatusList"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-note">Rede Nilo Supermercados — Loja Nova Xavantina · Controle de Transferência Depósito → Loja</div>
+  </main>
+</div>
+
+<!-- MODAL NOVA/EDITAR TRANSFERÊNCIA -->
+<div class="modal-backdrop" id="modalNova">
+  <div class="modal">
+    <div class="modal-head"><h3 id="modalTitulo">Nova Transferência</h3><button class="close" onclick="closeModal('modalNova')">×</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field"><label>Nº da Transferência</label><input id="fNumero" placeholder="Ex: TR-00231"></div>
+        <div class="field"><label>Prioridade</label>
+          <select id="fPrioridade"><option value="Normal">Normal</option><option value="Urgente">Urgente</option></select>
+        </div>
+        <div class="field span-2"><label>Itens / Descrição</label><input id="fItens" placeholder="Ex: 12 caixas mercearia, 4 caixas bazar"></div>
+        <div class="field"><label>Volume (caixas/pallets)</label><input id="fVolume" type="number" placeholder="Ex: 16"></div>
+        <div class="field"><label>Responsável</label><input id="fResponsavel" placeholder="Nome do responsável"></div>
+        <div class="field span-2"><label>Observações</label><input id="fObs" placeholder="Opcional"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeModal('modalNova')">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmSaveTransferencia()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETALHES E CORREÇÃO DE HORÁRIOS -->
+<div class="modal-backdrop" id="modalDetalhes">
+  <div class="modal">
+    <div class="modal-head"><h3>Detalhes e correção de horários</h3><button class="close" onclick="closeModal('modalDetalhes')">×</button></div>
+    <div class="modal-body" id="detalhesBody"></div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeModal('modalDetalhes')">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmSaveDetalhes()">Salvar correções</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DIVERGÊNCIA (ao receber na loja) -->
+<div class="modal-backdrop" id="modalDivergencia">
+  <div class="modal">
+    <div class="modal-head"><h3>Recebimento na loja</h3><button class="close" onclick="cancelDivergencia()">×</button></div>
+    <div class="modal-body">
+      <div class="field" style="margin-bottom:14px">
+        <label>Houve divergência no recebimento?</label>
+        <select id="fDivergencia"><option value="Nao">Não</option><option value="Sim">Sim</option></select>
+      </div>
+      <div class="field"><label>Observação</label><textarea id="fObsDivergencia" rows="3" style="width:100%" placeholder="Descreva a divergência, se houver"></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="cancelDivergencia()">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmDivergencia()">Confirmar recebimento</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ADMINISTRAÇÃO (MASTER) -->
+<div class="modal-backdrop" id="modalAdmin">
+  <div class="modal modal-wide" style="width:min(760px,100%)">
+    <div class="modal-head"><h3>Administração de usuários</h3><button class="close" onclick="closeModal('modalAdmin')">×</button></div>
+    <div class="modal-body" id="adminBody"></div>
+    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal('modalAdmin')">Fechar</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============== CONFIG ============== */
+const API_URL = 'https://script.google.com/macros/s/AKfycbykAe8bhgugl8HQbcyMz7sSROXFf19nIA7VeSU4XMfOakZ9BWYrlnWo7plPoC32xaDB/exec';
+const STAGES = [
+  {key:'pedido',       label:'Pedido Recebido',        field:'tPedidoRecebido',       color:'#94a3b8'},
+  {key:'separacao',    label:'Em Separação',           field:'tEmSeparacao',          color:'#2962b8'},
+  {key:'sepfinal',     label:'Separação Finalizada',   field:'tSeparacaoFinalizada',  color:'#dc7b14'},
+  {key:'faturamento',  label:'Faturamento',            field:'tFaturamento',          color:'#c93c3c'},
+  {key:'transporte',   label:'Aguardando Transporte',  field:'tAguardandoTransporte', color:'#dc7b14'},
+  {key:'pulmao',       label:'Entregue Depósito Pulmão',field:'tEntregueDepositoPulmao',color:'#E6A100'},
+  {key:'recebido',     label:'Recebido Loja',          field:'tRecebidoLoja',         color:'#17834f'}
+];
+const LS_KEY = 'nx_transferencias_v1';
+let LOJAS = [];
+const SESSION_KEY = 'nx_session_v1';
+let transferencias = [];
+let editingId = null;
+let charts = {};
+let currentUser = null;
+let currentLoja = null;
+let pendingGoTo = null;
+
+/* ============== UTIL ============== */
+function uid(){ return 'T' + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function nowISO(){ return new Date().toISOString(); }
+function fmtDate(iso){ return iso ? new Date(iso).toLocaleString('pt-BR') : '—'; }
+function minutesBetween(a,b){ if(!a||!b) return null; return Math.round((new Date(b)-new Date(a))/60000); }
+function fmtMin(m){ if(m===null||m===undefined||isNaN(m)) return '—'; if(m<60) return m+' min'; return Math.floor(m/60)+'h'+String(m%60).padStart(2,'0')+'min'; }
+function elapsedStr(startISO){
+  if(!startISO) return '--:--:--';
+  const diff = Math.max(0, Date.now() - new Date(startISO).getTime());
+  const totalSec = Math.floor(diff/1000);
+  const h = Math.floor(totalSec/3600), m = Math.floor((totalSec%3600)/60), s = totalSec%60;
+  return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+}
+function elapsedLong(startISO){
+  if(!startISO) return '—';
+  const diff = Math.max(0, Date.now() - new Date(startISO).getTime());
+  const totalSec = Math.floor(diff/1000);
+  const h = Math.floor(totalSec/3600), m = Math.floor((totalSec%3600)/60), s = totalSec%60;
+  return `${h}h ${String(m).padStart(2,'0')}min ${String(s).padStart(2,'0')}s`;
+}
+const LIMITE_ATRASO_MIN = 240; // 4h — aplicável apenas a pedidos com prioridade Normal
+function isAtrasado(t){
+  if(t.prioridade==='Urgente') return false;
+  if(isConcluida(t)) return false;
+  const total = minutesBetween(t.tPedidoRecebido, nowISO());
+  return total !== null && total > LIMITE_ATRASO_MIN;
+}
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2600); }
+function stageIndex(t){ for(let i=STAGES.length-1;i>=0;i--){ if(t[STAGES[i].field]) return i; } return 0; }
+function isConcluida(t){ return !!t.tRecebidoLoja; }
+
+/* ============== PERSISTÊNCIA (Sheets via Apps Script, com fallback local) ============== */
+async function api(action, payload){
+  if(!API_URL || API_URL.indexOf('COLE_AQUI')>=0){ return {ok:false, offline:true}; }
+  try{
+    const res = await fetch(API_URL, {method:'POST', body: JSON.stringify({action, payload})});
+    return await res.json();
+  }catch(e){ return {ok:false, error:String(e)}; }
+}
+function saveLocal(){ localStorage.setItem(LS_KEY, JSON.stringify(transferencias)); }
+function loadLocal(){ try{ return JSON.parse(localStorage.getItem(LS_KEY))||[]; }catch(e){ return []; } }
+async function loadLojas(){
+  const res = await api('listLojas', {});
+  LOJAS = (res.ok && res.lojas && res.lojas.length) ? res.lojas : [{ID:'nova-xavantina', Nome:'Nova Xavantina'}];
+}
+
+async function loadData(){
+  const res = await api('listTransferencias', {});
+  if(res.ok){
+    transferencias = res.transferencias || [];
+    document.getElementById('syncStatus').textContent = 'Sincronizado com a planilha';
+  } else {
+    transferencias = loadLocal();
+    document.getElementById('syncStatus').textContent = res.offline ? 'Modo local (configure a API_URL do Apps Script)' : 'Falha ao conectar — usando dados locais';
+  }
+  renderAll();
+}
+async function persist(t, action){
+  const res = await api(action, t);
+  if(!res.ok){ saveLocal(); }
+}
+
+/* ============== AUTENTICAÇÃO E CONTROLE DE ACESSO ============== */
+function showAuthCard(id){
+  document.querySelectorAll('.auth-card').forEach(c=>c.style.display='none');
+  document.getElementById(id).style.display='block';
+  document.querySelectorAll('.auth-error,.auth-success,.auth-pending').forEach(e=>e.classList.remove('show'));
+}
+function authErr(id,msg){ const e=document.getElementById(id); e.textContent=msg; e.classList.add('show'); }
+
+async function doLogin(){
+  const usuario = document.getElementById('loginUsuario').value.trim();
+  const senha = document.getElementById('loginSenha').value;
+  document.getElementById('loginError').classList.remove('show');
+  document.getElementById('loginPending').classList.remove('show');
+  if(!usuario||!senha){ authErr('loginError','Informe usuário e senha.'); return; }
+  const res = await api('login', {usuario, senha});
+  if(!res.ok){ authErr('loginError', res.error || 'Não foi possível autenticar. Verifique a conexão com a planilha.'); return; }
+  if(!res.found){ authErr('loginError','Usuário ou senha inválidos.'); return; }
+  if(res.user.Ativo !== 'Sim'){ document.getElementById('loginPending').classList.add('show'); return; }
+  currentUser = res.user;
+  localStorage.setItem(SESSION_KEY, JSON.stringify({user:currentUser}));
+  afterLogin();
+}
+async function doRegister(){
+  const nome=document.getElementById('regNome').value.trim();
+  const telefone=document.getElementById('regTelefone').value.trim();
+  const email=document.getElementById('regEmail').value.trim();
+  const usuario=document.getElementById('regUsuario').value.trim();
+  const senha=document.getElementById('regSenha').value;
+  const senhaConfirm=document.getElementById('regSenhaConfirm').value;
+  document.getElementById('registerError').classList.remove('show');
+  document.getElementById('registerSuccess').classList.remove('show');
+  if(!nome||!usuario||!senha){ authErr('registerError','Preencha nome, usuário e senha.'); return; }
+  if(senha.length<6){ authErr('registerError','A senha precisa ter pelo menos 6 caracteres.'); return; }
+  if(senha!==senhaConfirm){ authErr('registerError','As senhas não coincidem.'); return; }
+  const res = await api('register', {nome, telefone, email, usuario, senha});
+  if(!res.ok){ authErr('registerError', res.error || 'Falha ao cadastrar. Verifique se o usuário já existe.'); return; }
+  const successEl = document.getElementById('registerSuccess');
+  successEl.textContent = 'Cadastro enviado como Colaborador. Seu acesso fica pendente até um Master liberar e atribuir a(s) loja(s).';
+  successEl.classList.add('show');
+  ['regNome','regTelefone','regEmail','regUsuario','regSenha','regSenhaConfirm'].forEach(id=>document.getElementById(id).value='');
+}
+function doLogout(){
+  localStorage.removeItem(SESSION_KEY);
+  currentUser=null; currentLoja=null;
+  document.getElementById('mainApp').style.display='none';
+  document.getElementById('authScreen').style.display='flex';
+  showAuthCard('authCardLogin');
+}
+function afterLogin(){
+  if(currentUser.Perfil === 'Master'){
+    showStoreSelect(LOJAS);
+  } else {
+    const autorizadas = (currentUser.LojasAutorizadas||'').split(',').filter(Boolean);
+    const lojasDoUsuario = LOJAS.filter(l=>autorizadas.includes(l.ID));
+    if(lojasDoUsuario.length===0){ authErr('loginError','Seu usuário ainda não tem lojas autorizadas. Fale com um Master.'); showAuthCard('authCardLogin'); return; }
+    if(lojasDoUsuario.length===1){ selectStore(lojasDoUsuario[0].ID); return; }
+    showStoreSelect(lojasDoUsuario);
+  }
+}
+function showStoreSelect(lojas){
+  document.getElementById('storeSelectList').innerHTML = lojas.map(l=>`
+    <button class="store-select-btn" onclick="selectStore('${l.ID}')"><span>${l.Nome}</span><span class="store-select-cta">Acessar</span></button>`).join('');
+  showAuthCard('authCardStoreSelect');
+}
+function selectStore(lojaId){
+  currentLoja = lojaId;
+  const session = JSON.parse(localStorage.getItem(SESSION_KEY)||'{}');
+  session.loja = lojaId;
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  enterApp();
+}
+function enterApp(){
+  document.getElementById('authScreen').style.display='none';
+  document.getElementById('mainApp').style.display='block';
+  document.getElementById('userBadge').textContent = currentUser.Nome + ' · ' + currentUser.Perfil;
+  document.getElementById('adminBtn').style.display = currentUser.Perfil==='Master' ? 'inline-flex' : 'none';
+  tickClock();
+  loadData();
+}
+
+/* ============== ADMINISTRAÇÃO (MASTER) ============== */
+async function openAdmin(){
+  await loadLojas();
+  const res = await api('adminListUsers', {});
+  if(!res.ok){ showToast('Falha ao carregar usuários.'); return; }
+  renderAdmin(res.usuarios||[]);
+  openModal('modalAdmin');
+}
+function toggleNovoUserLojas(){
+  const perfil = document.getElementById('novoUserPerfil').value;
+  document.getElementById('novoUserLojasWrap').style.display = perfil==='Master' ? 'none' : 'block';
+}
+function renderAdmin(usuarios){
+  const lojasBadges = LOJAS.length ? LOJAS.map(l=>`<span class="pill ativo" style="margin-right:6px">${l.Nome}</span>`).join('') : '<span class="hint">Nenhuma loja cadastrada</span>';
+  const lojasChecksNovoUsuario = LOJAS.length ? LOJAS.map(l=>`<label class="loja-check"><input type="checkbox" class="novoUserLoja" value="${l.ID}"> ${l.Nome}</label>`).join('') : '<span class="hint">Cadastre uma loja primeiro</span>';
+
+  const usersHtml = usuarios.length ? usuarios.map(u=>{
+    const lojasAtual = (u.LojasAutorizadas||'').split(',').filter(Boolean);
+    const checks = LOJAS.map(l=>`<label class="loja-check"><input type="checkbox" id="loja_${u.ID}_${l.ID}" ${lojasAtual.includes(l.ID)?'checked':''}> ${l.Nome}</label>`).join('');
+    const statusPill = u.Perfil==='Master' ? '<span class="pill master">Master</span>' : (u.Ativo==='Sim' ? '<span class="pill ativo">Ativo</span>' : '<span class="pill pendente">Pendente</span>');
+    return `<div class="admin-user-row" style="flex-direction:column;align-items:stretch;gap:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="admin-user-info"><b>${u.Nome} (${u.Usuario})</b><span>${u.Telefone||''} ${u.Email||''}</span></div>
+        ${statusPill}
+      </div>
+      ${u.Perfil!=='Master' ? `<div class="loja-checks">${checks || '<span class="hint">Nenhuma loja cadastrada</span>'}</div>` : ''}
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        ${u.Perfil!=='Master' ? `<select id="ativo_${u.ID}"><option value="Sim" ${u.Ativo==='Sim'?'selected':''}>Ativo</option><option value="Nao" ${u.Ativo!=='Sim'?'selected':''}>Pendente / Bloqueado</option></select>
+        <button class="btn btn-primary btn-sm" onclick="salvarUsuarioAdmin('${u.ID}')">Salvar</button>` : ''}
+        <input type="password" id="novasenha_${u.ID}" placeholder="Nova senha (mín. 6)" style="border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:12px;width:150px">
+        <button class="btn btn-outline btn-sm" onclick="redefinirSenhaAdmin('${u.ID}')">Redefinir senha</button>
+      </div>
+    </div>`;
+  }).join('') : '<div class="empty">Nenhum usuário cadastrado</div>';
+
+  document.getElementById('adminBody').innerHTML = `
+    <div class="panel" style="margin-bottom:16px;padding:16px;box-shadow:none;border:1px solid var(--line)">
+      <h2 style="font-size:14px">Lojas cadastradas</h2>
+      <div style="margin:8px 0 14px">${lojasBadges}</div>
+      <div style="display:flex;gap:8px;align-items:end;flex-wrap:wrap">
+        <div class="field" style="min-width:220px"><label>Nova loja</label><input id="novaLojaNome" placeholder="Ex: Barra do Garças"></div>
+        <button class="btn btn-primary btn-sm" onclick="criarLojaAdmin()">+ Cadastrar loja</button>
+      </div>
+    </div>
+    <div class="panel" style="margin-bottom:16px;padding:16px;box-shadow:none;border:1px solid var(--line)">
+      <h2 style="font-size:14px">Criar novo usuário</h2>
+      <p class="hint">Usuários criados aqui já entram ativos — diferente do autocadastro pela tela de login, que sempre fica pendente.</p>
+      <div class="form-grid" style="margin-bottom:10px">
+        <div class="field"><label>Nome</label><input id="novoUserNome"></div>
+        <div class="field"><label>Usuário</label><input id="novoUserUsuario"></div>
+        <div class="field"><label>Senha inicial</label><input id="novoUserSenha" type="password"></div>
+        <div class="field"><label>Perfil</label><select id="novoUserPerfil" onchange="toggleNovoUserLojas()"><option value="Colaborador">Colaborador</option><option value="Master">Master</option></select></div>
+        <div class="field"><label>Telefone</label><input id="novoUserTelefone"></div>
+        <div class="field"><label>E-mail</label><input id="novoUserEmail"></div>
+      </div>
+      <div id="novoUserLojasWrap">
+        <label style="font-size:12px;color:var(--muted);font-weight:700;display:block;margin-bottom:6px">Lojas autorizadas</label>
+        <div class="loja-checks">${lojasChecksNovoUsuario}</div>
+      </div>
+      <button class="btn btn-primary btn-sm" style="margin-top:10px" onclick="criarUsuarioAdmin()">+ Criar usuário</button>
+    </div>
+    <h2 style="font-size:14px;margin-bottom:10px">Usuários cadastrados</h2>
+    ${usersHtml}
+  `;
+}
+async function criarLojaAdmin(){
+  const nome = document.getElementById('novaLojaNome').value.trim();
+  if(!nome){ showToast('Informe o nome da loja.'); return; }
+  const res = await api('adminCreateLoja', {nome});
+  if(res.ok){ showToast('Loja cadastrada.'); openAdmin(); } else { showToast(res.error||'Falha ao cadastrar loja.'); }
+}
+async function criarUsuarioAdmin(){
+  const nome=document.getElementById('novoUserNome').value.trim();
+  const usuario=document.getElementById('novoUserUsuario').value.trim();
+  const senha=document.getElementById('novoUserSenha').value;
+  const perfil=document.getElementById('novoUserPerfil').value;
+  const telefone=document.getElementById('novoUserTelefone').value.trim();
+  const email=document.getElementById('novoUserEmail').value.trim();
+  const lojas = Array.from(document.querySelectorAll('.novoUserLoja:checked')).map(el=>el.value);
+  if(!nome||!usuario||!senha){ showToast('Preencha nome, usuário e senha.'); return; }
+  if(senha.length<6){ showToast('A senha precisa ter pelo menos 6 caracteres.'); return; }
+  const res = await api('adminCreateUsuario', {nome, usuario, senha, perfil, telefone, email, lojas});
+  if(res.ok){ showToast('Usuário criado e já ativo.'); openAdmin(); } else { showToast(res.error||'Falha ao criar usuário.'); }
+}
+async function redefinirSenhaAdmin(id){
+  const novaSenha = document.getElementById('novasenha_'+id).value;
+  if(!novaSenha || novaSenha.length<6){ showToast('Informe uma nova senha com pelo menos 6 caracteres.'); return; }
+  const res = await api('adminResetSenha', {id, novaSenha});
+  if(res.ok){ showToast('Senha redefinida.'); document.getElementById('novasenha_'+id).value=''; } else { showToast(res.error||'Falha ao redefinir senha.'); }
+}
+async function salvarUsuarioAdmin(id){
+  const lojas = LOJAS.filter(l=>document.getElementById(`loja_${id}_${l.ID}`)?.checked).map(l=>l.ID);
+  const ativo = document.getElementById(`ativo_${id}`).value;
+  const res = await api('adminUpdateUsuario', {id, lojas, ativo});
+  if(res.ok){ showToast('Usuário atualizado.'); openAdmin(); } else { showToast(res.error||'Falha ao atualizar.'); }
+}
+
+/* ============== CRUD ============== */
+function openNewModal(){
+  editingId = null;
+  document.getElementById('modalTitulo').textContent = 'Nova Transferência';
+  ['fNumero','fItens','fVolume','fResponsavel','fObs'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fPrioridade').value = 'Normal';
+  openModal('modalNova');
+}
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+
+async function confirmSaveTransferencia(){
+  const numero = document.getElementById('fNumero').value.trim();
+  if(!numero){ showToast('Informe o número da transferência.'); return; }
+  const t = {
+    id: uid(),
+    numero,
+    prioridade: document.getElementById('fPrioridade').value,
+    itens: document.getElementById('fItens').value.trim(),
+    volume: document.getElementById('fVolume').value.trim(),
+    responsavel: document.getElementById('fResponsavel').value.trim(),
+    observacoes: document.getElementById('fObs').value.trim(),
+    tPedidoRecebido: nowISO(),
+    tEmSeparacao: '', tSeparacaoFinalizada: '', tFaturamento: '', tAguardandoTransporte: '', tEntregueDepositoPulmao: '', tRecebidoLoja: '',
+    divergencia: '', obsDivergencia: ''
+  };
+  transferencias.unshift(t);
+  saveLocal();
+  await persist(t, 'createTransferencia');
+  closeModal('modalNova');
+  showToast('Transferência criada.');
+  renderAll();
+}
+
+async function avancarEtapa(id){
+  const t = transferencias.find(x=>x.id===id);
+  if(!t) return;
+  const idx = stageIndex(t);
+  if(idx >= STAGES.length-1){ showToast('Transferência já concluída.'); return; }
+  goToStage(id, idx+1);
+}
+function goToStage(id, targetIdx){
+  const t = transferencias.find(x=>x.id===id);
+  if(!t) return;
+  const atual = stageIndex(t);
+  if(targetIdx===atual) return;
+  if(targetIdx === STAGES.length-1){
+    pendingGoTo = {id, targetIdx};
+    document.getElementById('fDivergencia').value = 'Nao';
+    document.getElementById('fObsDivergencia').value = '';
+    openModal('modalDivergencia');
+    return;
+  }
+  applyStageChange(id, targetIdx);
+}
+async function applyStageChange(id, targetIdx, extra){
+  const t = transferencias.find(x=>x.id===id);
+  if(!t) return;
+  const atual = stageIndex(t);
+  for(let i=0;i<=targetIdx;i++){ if(!t[STAGES[i].field]) t[STAGES[i].field] = nowISO(); }
+  if(targetIdx < atual){ for(let i=targetIdx+1;i<STAGES.length;i++){ t[STAGES[i].field] = ''; } }
+  if(extra){ Object.assign(t, extra); }
+  saveLocal();
+  await persist(t, 'updateTransferencia');
+  showToast('Movido para: ' + STAGES[targetIdx].label);
+  renderAll();
+}
+function cancelDivergencia(){ pendingGoTo=null; closeModal('modalDivergencia'); }
+async function confirmDivergencia(){
+  if(!pendingGoTo) return;
+  const divergencia = document.getElementById('fDivergencia').value;
+  const obsDivergencia = document.getElementById('fObsDivergencia').value.trim();
+  await applyStageChange(pendingGoTo.id, pendingGoTo.targetIdx, {divergencia, obsDivergencia});
+  closeModal('modalDivergencia');
+  pendingGoTo = null;
+}
+function moverParaEtapa(id, stageIdx){
+  goToStage(id, stageIdx);
+}
+async function excluirTransferencia(id){
+  if(!confirm('Excluir esta transferência?')) return;
+  transferencias = transferencias.filter(x=>x.id!==id);
+  saveLocal();
+  await persist({id}, 'deleteTransferencia');
+  showToast('Transferência excluída.');
+  renderAll();
+}
+
+/* ============== DETALHES E CORREÇÃO DE HORÁRIOS ============== */
+function isoToLocalInput(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  const pad = n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function localInputToIso(val){
+  if(!val) return '';
+  return new Date(val).toISOString();
+}
+function openDetalhes(id){
+  editingId = id;
+  const t = transferencias.find(x=>x.id===id);
+  if(!t) return;
+  document.getElementById('detalhesBody').innerHTML = STAGES.map(s=>`
+    <div class="detalhes-field">
+      <label>${s.label}</label>
+      <input type="datetime-local" id="det_${s.field}" value="${isoToLocalInput(t[s.field])}">
+    </div>`).join('');
+  openModal('modalDetalhes');
+}
+async function confirmSaveDetalhes(){
+  const t = transferencias.find(x=>x.id===editingId);
+  if(!t) return;
+  STAGES.forEach(s=>{
+    const val = document.getElementById('det_'+s.field).value;
+    t[s.field] = localInputToIso(val);
+  });
+  saveLocal();
+  await persist(t, 'updateTransferencia');
+  closeModal('modalDetalhes');
+  showToast('Horários atualizados.');
+  renderAll();
+}
+
+/* ============== TABS ============== */
+function switchView(view){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(view).classList.add('active');
+  document.querySelector(`.tab[data-view="${view}"]`).classList.add('active');
+  if(view==='viewCrono') renderCrono();
+  if(view==='viewDash') renderDash();
+}
+function renderAll(){ renderKanban(); if(document.getElementById('viewCrono').classList.contains('active')) renderCrono(); if(document.getElementById('viewDash').classList.contains('active')) renderDash(); }
+
+/* ============== KANBAN ============== */
+let dragId = null;
+function renderKanban(){
+  const board = document.getElementById('kanbanBoard');
+  const busca = (document.getElementById('kbSearch').value||'').toLowerCase();
+  const prio = document.getElementById('kbFiltroPrioridade').value;
+  let list = transferencias.filter(t=>!isConcluida(t) || stageIndex(t)===STAGES.length-1);
+  list = list.filter(t=>{
+    if(busca && !(t.numero||'').toLowerCase().includes(busca) && !(t.itens||'').toLowerCase().includes(busca)) return false;
+    if(prio && t.prioridade!==prio) return false;
+    return true;
+  });
+  document.getElementById('kbCount').textContent = list.filter(t=>!isConcluida(t)).length + ' transferências em andamento';
+
+  board.innerHTML = STAGES.map((s,idx)=>{
+    const itens = list.filter(t=>stageIndex(t)===idx);
+    return `<div class="kanban-col" data-stage="${idx}" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="onDrop(event,${idx})">
+      <div class="col-head">
+        <div class="col-title"><span class="dot" style="background:${s.color}"></span>${s.label}</div>
+        <div class="badge">${itens.length}</div>
+      </div>
+      <div class="cards">
+        ${itens.length? itens.map(t=>cardHtml(t,idx)).join('') : '<div class="empty">Vazio</div>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+function cardHtml(t, idx){
+  const proximo = idx < STAGES.length-1 ? STAGES[idx+1].label : null;
+  const urgente = t.prioridade==='Urgente';
+  const atrasado = isAtrasado(t);
+  const cronoEtapa = elapsedLong(t[STAGES[idx].field]);
+  const cronoTotal = elapsedLong(t.tPedidoRecebido);
+  return `<div class="order-card ${urgente?'urgente':''} ${atrasado?'atrasado':''}" draggable="true" ondragstart="dragId='${t.id}';this.classList.add('dragging')" ondragend="this.classList.remove('dragging')" data-id="${t.id}">
+    ${urgente?'<div class="order-urgent"><span class="blink-dot blink-red"></span>URGENTE</div>':''}
+    ${atrasado?'<div class="order-atraso-tag">⚠ MAIS DE 4H SEM CONCLUSÃO</div>':''}
+    ${t.divergencia==='Sim'?'<div class="order-atraso-tag">⚠ DIVERGÊNCIA NO RECEBIMENTO</div>':''}
+    <div class="order-top"><span class="order-id">${t.numero}</span><button class="card-delete" onclick="excluirTransferencia('${t.id}')">×</button></div>
+    <div class="order-client">${t.itens || 'Sem descrição'}</div>
+    <div class="order-line">📦 Volume: ${t.volume || '—'}</div>
+    <div class="order-line">👤 ${t.responsavel || 'Sem responsável'}</div>
+    <div class="timer-box ${atrasado?'atrasado':''}">
+      <div><div class="timer-label">Tempo total</div><div class="timer-value ${atrasado?'atrasado':''}">${cronoTotal}</div></div>
+      <div><div class="timer-label">Na etapa</div><div class="timer-value etapa">${cronoEtapa}</div></div>
+    </div>
+    <div class="order-actions">
+      ${proximo? `<button class="btn btn-advance" onclick="avancarEtapa('${t.id}')">Avançar → ${proximo}</button>` : `<button class="btn" style="background:#e9f7ef;color:var(--green)" disabled>✔ Concluída</button>`}
+      <button class="btn btn-outline" onclick="openDetalhes('${t.id}')">Detalhes</button>
+    </div>
+  </div>`;
+}
+function onDrop(ev, stageIdx){
+  ev.preventDefault();
+  ev.currentTarget.classList.remove('drag-over');
+  if(dragId) moverParaEtapa(dragId, stageIdx);
+  dragId = null;
+}
+
+/* ============== CRONOANÁLISE ============== */
+function periodoFiltrado(){
+  const dias = parseInt(document.getElementById('crPeriodo').value,10);
+  if(!dias) return transferencias;
+  const limite = Date.now() - dias*24*60*60*1000;
+  return transferencias.filter(t=>new Date(t.tPedidoRecebido).getTime()>=limite);
+}
+function tempoEtapaTransf(t, i){
+  return minutesBetween(t[STAGES[i].field], t[STAGES[i+1].field]);
+}
+function renderCrono(){
+  const list = periodoFiltrado();
+  const slaMin = parseInt(document.getElementById('crSlaMinutos').value,10) || 240;
+
+  // médias por etapa
+  const medias = STAGES.slice(0,-1).map((s,i)=>{
+    const tempos = list.map(t=>tempoEtapaTransf(t,i)).filter(v=>v!==null);
+    const media = tempos.length ? Math.round(tempos.reduce((a,b)=>a+b,0)/tempos.length) : null;
+    return {label: s.label + ' → ' + STAGES[i+1].label, media, n: tempos.length};
+  });
+  const maiorMedia = Math.max(...medias.map(m=>m.media||0));
+
+  document.getElementById('stageMetrics').innerHTML = medias.map(m=>`
+    <div class="stage-metric ${m.media===maiorMedia && m.media>0 ? 'bottleneck':''}">
+      <div class="name">${m.label}</div>
+      <div class="time">${fmtMin(m.media)}</div>
+    </div>`).join('');
+
+  // gráfico etapas
+  const ctx1 = document.getElementById('chartEtapas').getContext('2d');
+  if(charts.etapas) charts.etapas.destroy();
+  charts.etapas = new Chart(ctx1, {
+    type:'bar',
+    data:{ labels: medias.map(m=>m.label), datasets:[{label:'Tempo médio (min)', data: medias.map(m=>m.media||0), backgroundColor:'#FFC400', borderRadius:6}] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{ticks:{font:{size:9}}}} }
+  });
+
+  // SLA
+  const concluidas = list.filter(isConcluida);
+  const noPrazo = concluidas.filter(t=>minutesBetween(t.tPedidoRecebido,t.tRecebidoLoja) <= slaMin).length;
+  const foraPrazo = concluidas.length - noPrazo;
+  const ctx2 = document.getElementById('chartSla').getContext('2d');
+  if(charts.sla) charts.sla.destroy();
+  charts.sla = new Chart(ctx2, {
+    type:'doughnut',
+    data:{ labels:['No prazo','Fora do prazo'], datasets:[{data:[noPrazo,foraPrazo], backgroundColor:['#17834f','#c93c3c']}] },
+    options:{ responsive:true, maintainAspectRatio:false }
+  });
+
+  // tabela detalhada
+  document.getElementById('cronoTableBody').innerHTML = list.length ? list.map(t=>{
+    const cols = [0,1,2,3,4,5].map(i=>fmtMin(tempoEtapaTransf(t,i)));
+    const total = minutesBetween(t.tPedidoRecebido, t.tRecebidoLoja);
+    const slaTag = !isConcluida(t) ? '<span class="sla-bad">Em aberto</span>' : (total<=slaMin ? '<span class="sla-ok">No prazo</span>' : '<span class="sla-bad">Atrasada</span>');
+    return `<tr><td>${t.numero}</td><td>${t.prioridade}</td><td>${cols[0]}</td><td>${cols[1]}</td><td>${cols[2]}</td><td>${cols[3]}</td><td>${cols[4]}</td><td>${cols[5]}</td><td><b>${fmtMin(total)}</b></td><td>${slaTag}</td></tr>`;
+  }).join('') : '<tr><td colspan="10" class="empty">Nenhuma transferência no período</td></tr>';
+}
+
+/* ============== DASHBOARD ============== */
+function renderDash(){
+  const total = transferencias.length;
+  const abertas = transferencias.filter(t=>!isConcluida(t)).length;
+  const concluidas = transferencias.filter(isConcluida);
+  const ciclos = concluidas.map(t=>minutesBetween(t.tPedidoRecebido,t.tRecebidoLoja)).filter(v=>v!==null);
+  const cicloMedio = ciclos.length ? Math.round(ciclos.reduce((a,b)=>a+b,0)/ciclos.length) : null;
+  const slaMin = parseInt(document.getElementById('crSlaMinutos')?.value,10) || 240;
+  const noPrazo = concluidas.filter(t=>minutesBetween(t.tPedidoRecebido,t.tRecebidoLoja)<=slaMin).length;
+  const pctPrazo = concluidas.length ? Math.round(100*noPrazo/concluidas.length) : null;
+  const urgentesAbertas = transferencias.filter(t=>!isConcluida(t) && t.prioridade==='Urgente').length;
+
+  document.getElementById('dashKpis').innerHTML = `
+    <div class="kpi"><div class="label">Total de transferências</div><div class="value">${total}</div><div class="sub">Histórico completo</div></div>
+    <div class="kpi warn"><div class="label">Em andamento</div><div class="value">${abertas}</div><div class="sub">${urgentesAbertas} urgente(s)</div></div>
+    <div class="kpi"><div class="label">Ciclo médio total</div><div class="value">${fmtMin(cicloMedio)}</div><div class="sub">Pedido → Recebido na loja</div></div>
+    <div class="kpi ${pctPrazo===null?'':(pctPrazo>=80?'good':'bad')}"><div class="label">Aderência ao SLA</div><div class="value">${pctPrazo===null?'—':pctPrazo+'%'}</div><div class="sub">Meta atual: ${slaMin} min</div></div>
+  `;
+
+  // volume diário (últimos 14 dias)
+  const dias = [...Array(14)].map((_,i)=>{ const d=new Date(); d.setDate(d.getDate()-(13-i)); return d; });
+  const labels = dias.map(d=>d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}));
+  const counts = dias.map(d=>{
+    const key = d.toDateString();
+    return transferencias.filter(t=>new Date(t.tPedidoRecebido).toDateString()===key).length;
+  });
+  const ctx = document.getElementById('chartVolumeDiario').getContext('2d');
+  if(charts.volume) charts.volume.destroy();
+  charts.volume = new Chart(ctx, {
+    type:'bar',
+    data:{ labels, datasets:[{label:'Transferências recebidas', data:counts, backgroundColor:'#1B2A4A', borderRadius:6}] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}} }
+  });
+
+  // distribuição por etapa
+  const dist = STAGES.map((s,i)=>({label:s.label, color:s.color, n: transferencias.filter(t=>!isConcluida(t) && stageIndex(t)===i).length}));
+  const maxN = Math.max(1, ...dist.map(d=>d.n));
+  document.getElementById('dashStatusList').innerHTML = dist.map(d=>`
+    <div class="status-row">
+      <div>${d.label}</div>
+      <div class="status-track"><div class="status-fill" style="width:${(d.n/maxN)*100}%;background:${d.color}"></div></div>
+      <div class="status-count">${d.n}</div>
+    </div>`).join('');
+}
+
+/* ============== RELÓGIO E BOOT ============== */
+function tickClock(){ document.getElementById('liveClock').textContent = new Date().toLocaleTimeString('pt-BR'); }
+setInterval(()=>{ tickClock(); if(currentLoja) renderKanban(); }, 1000);
+(async function initAuth(){
+  await loadLojas();
+  const saved = localStorage.getItem(SESSION_KEY);
+  if(saved){
+    try{
+      const session = JSON.parse(saved);
+      currentUser = session.user;
+      if(session.loja){ currentLoja = session.loja; enterApp(); return; }
+      afterLogin();
+      return;
+    }catch(e){ localStorage.removeItem(SESSION_KEY); }
+  }
+  document.getElementById('authScreen').style.display='flex';
+  showAuthCard('authCardLogin');
+})();
+</script>
+</body>
+</html>
